@@ -14,62 +14,62 @@ def vpn_data():
 def test_fetch_servers(vpn_data):
     """Test fetching server data from API."""
     mock_response = Mock()
-    mock_response.json.return_value = [
-        {
-            "Name": "US-NY#1",
-            "Country": "United States",
-            "City": "New York",
-            "Latitude": 40.7128,
-            "Longitude": -74.0060,
-            "P2P Feature Enabled": True,
-            "Load": 45,
-            "Status": 1,
-        }
-    ]
+    mock_response.json.return_value = {
+        "genDate": "2025-10-08T06:37:17.311Z",
+        "data": [
+            {
+                "ipv4": "1.2.3.4",
+                "ipv6": None,
+                "domain": "us-01.protonvpn.net",
+                "servers": ["US#1", "US#2"],
+                "ipv6Enabled": False,
+                "city": "New York",
+                "P2P": True,
+                "Streaming": True,
+            }
+        ],
+    }
 
     with patch("requests.get", return_value=mock_response):
         vpn_data.fetch_servers()
 
     assert len(vpn_data.servers) == 1
-    assert vpn_data.servers[0]["Name"] == "US-NY#1"
+    assert vpn_data.servers[0]["city"] == "New York"
 
 
 def test_get_p2p_servers(vpn_data):
     """Test filtering P2P-enabled servers."""
     vpn_data.servers = [
         {
-            "Name": "US-NY#1",
-            "Country": "United States",
-            "City": "New York",
-            "Latitude": 40.7128,
-            "Longitude": -74.0060,
-            "P2P Feature Enabled": True,
-            "Load": 45,
-            "Status": 1,
+            "ipv4": "1.2.3.4",
+            "domain": "us-01.protonvpn.net",
+            "servers": ["US#1", "US#2"],
+            "city": "New York",
+            "P2P": True,
+            "Streaming": True,
         },
         {
-            "Name": "FR-PAR#1",
-            "Country": "France",
-            "City": "Paris",
-            "Latitude": 48.8566,
-            "Longitude": 2.3522,
-            "P2P Feature Enabled": False,
-            "Load": 30,
-            "Status": 1,
+            "ipv4": "5.6.7.8",
+            "domain": "fr-01.protonvpn.net",
+            "servers": ["FR#1"],
+            "city": "Paris",
+            "P2P": False,
+            "Streaming": True,
         },
         {
-            "Name": "NL-AMS#1",
-            "Country": "Netherlands",
-            "City": "Amsterdam",
-            "Latitude": 52.3676,
-            "Longitude": 4.9041,
-            "P2P Feature Enabled": True,
-            "Load": 20,
-            "Status": 1,
+            "ipv4": "9.10.11.12",
+            "domain": "nl-01.protonvpn.net",
+            "servers": ["NL#1", "NL#2", "NL#3"],
+            "city": "Amsterdam",
+            "P2P": True,
+            "Streaming": False,
         },
     ]
 
-    p2p_servers = vpn_data.get_p2p_servers()
+    # Test without geocoding to avoid external API calls
+    p2p_servers = vpn_data.get_p2p_servers(geocode=False)
 
     assert len(p2p_servers) == 2
-    assert all(s["name"] in ["US-NY#1", "NL-AMS#1"] for s in p2p_servers)
+    assert all(s["country"] in ["US", "NL"] for s in p2p_servers)
+    assert p2p_servers[0]["city"] == "New York"
+    assert p2p_servers[1]["city"] == "Amsterdam"

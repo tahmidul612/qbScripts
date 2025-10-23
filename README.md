@@ -167,4 +167,5 @@ MIT License - see LICENSE file for details
 
 - [IP-API.com](https://ip-api.com/) for free IP geolocation
 - [ProtonVPN](https://protonvpn.com/) for VPN services
+- [Huzky-v's ProtonVPN Server List](https://github.com/huzky-v/proton-vpn-server-list) for server data
 - [qBittorrent](https://www.qbittorrent.org/) for the excellent torrent client
