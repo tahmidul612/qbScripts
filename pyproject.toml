@@ -1,13 +1,37 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "qbscripts"
 version = "0.1.0"
-description = "A collection of useful scripts for qBittorrent"
+description = "qBittorrent Peer-IP Clustering & ProtonVPN Server Recommender"
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [
     { name = "Tahmidul Islam", email = "me@tahmidul612.com" },
 ]
-license = "MIT"
+license = { text = "MIT" }
+dependencies = [
+    "cachetools>=6.2.1",
+    "folium>=0.20.0",
+    "geopy>=2.4.1",
+    "numpy>=2.3.4",
+    "qbittorrent-api>=2025.7.0",
+    "requests>=2.32.5",
+    "rich>=14.2.0",
+    "scikit-learn>=1.7.2",
+    "typer>=0.20.0",
+]
+
+[project.scripts]
+qb-peer-vpn = "qb_peer_vpn.cli:app"
+
+[tool.uv]
+package = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/qb_peer_vpn"]
 
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
@@ -104,7 +128,18 @@ pre_bump_hooks = [
 
 [dependency-groups]
 dev = [
+    "click>=8.3.0",
     "commitizen>=4.9.1",
     "pre-commit>=4.3.0",
+    "pytest>=8.4.2",
+    "pytest-cov>=7.0.0",
     "ruff>=0.14.1",
+    "typer>=0.20.0",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "--cov=src/qb_peer_vpn --cov-report=term-missing --cov-report=html"
