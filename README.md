@@ -1,3 +1,3 @@
 # qbScripts
 
-> A collection of useful scripts for qBittorren
+> A collection of useful scripts for qBittorrent
