@@ -1,6 +1,74 @@
 # qBittorrent Peer-IP Clustering & ProtonVPN Server Recommender
 
+<div align="center">
+
+[![Version](https://img.shields.io/github/v/tag/tahmidul612/qbScripts?style=for-the-badge&label=version&color=blue)](https://github.com/tahmidul612/qbScripts/releases)
+[![Python Version](https://img.shields.io/badge/python-3.11+-blue.svg?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org)
+[![License](https://img.shields.io/badge/license-MIT-green.svg?style=for-the-badge)](LICENSE)
+[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-black.svg?style=for-the-badge)](https://github.com/astral-sh/ruff)
+
+[![qBittorrent](https://img.shields.io/badge/qBittorrent-compatible-blue.svg?style=for-the-badge&logo=qbittorrent&logoColor=white)](https://www.qbittorrent.org/)
+[![ProtonVPN](https://img.shields.io/badge/ProtonVPN-P2P-purple.svg?style=for-the-badge&logo=protonvpn&logoColor=white)](https://protonvpn.com/)
+[![Tests](https://img.shields.io/badge/tests-pytest-orange.svg?style=for-the-badge&logo=pytest&logoColor=white)](https://pytest.org)
+
+</div>
+
 A Python tool that analyzes qBittorrent peer distributions and recommends optimal ProtonVPN P2P servers based on geographic clustering.
+
+## Table of Contents
+
+- [Table of Contents](#table-of-contents)
+- [Quick Start](#quick-start)
+- [Features](#features)
+- [Installation](#installation)
+  - [Using uv (Recommended)](#using-uv-recommended)
+  - [Using pip](#using-pip)
+  - [PNG Export Setup (Optional)](#png-export-setup-optional)
+- [Usage](#usage)
+  - [Basic Usage](#basic-usage)
+  - [With Map Generation](#with-map-generation)
+  - [With Map and PNG Export](#with-map-and-png-export)
+  - [Advanced Options](#advanced-options)
+  - [Options](#options)
+  - [Example Output](#example-output)
+- [Requirements](#requirements)
+- [Development](#development)
+  - [Setup Development Environment](#setup-development-environment)
+  - [Run Tests](#run-tests)
+  - [Run Tests with Coverage](#run-tests-with-coverage)
+  - [Linting](#linting)
+- [Project Structure](#project-structure)
+- [How It Works](#how-it-works)
+  - [Geolocation Features](#geolocation-features)
+- [Contributing](#contributing)
+  - [Commit Messages](#commit-messages)
+  - [Branch Naming](#branch-naming)
+  - [Pre-commit Hooks](#pre-commit-hooks)
+- [License](#license)
+- [Acknowledgments](#acknowledgments)
+
+## Quick Start
+
+Get up and running in 3 steps:
+
+```bash
+# 1. Clone and install
+git clone https://github.com/tahmidul612/qbScripts.git
+cd qbScripts
+uv sync
+
+# 2. Make sure qBittorrent Web UI is enabled (default port 8080)
+
+# 3. Run the analyzer
+qb-peer-vpn --username admin --password yourpassword --map peer_map.html
+```
+
+That's it! You'll see peer analysis, cluster recommendations, and an interactive map.
+
+<div align="center">
+  <img src="docs/assets/demo.gif" alt="qb-peer-vpn demo" width="800">
+  <p><em>Real-time peer geolocation, clustering analysis, and ProtonVPN server recommendations with rich terminal UI</em></p>
+</div>
 
 ## Features
 
@@ -46,15 +114,13 @@ This enables headless browser rendering for converting HTML maps to PNG images.
 ### Basic Usage
 
 ```bash
-qb-peer-vpn analyze --host localhost --port 8080 --username admin
+qb-peer-vpn --username admin --password yourpassword
 ```
-
-You'll be prompted for your qBittorrent password.
 
 ### With Map Generation
 
 ```bash
-qb-peer-vpn analyze --host localhost --port 8080 --username admin --map peer_map.html
+qb-peer-vpn --username admin --password yourpassword --map peer_map.html
 ```
 
 ### With Map and PNG Export
@@ -62,7 +128,7 @@ qb-peer-vpn analyze --host localhost --port 8080 --username admin --map peer_map
 Generate both HTML and PNG versions of the map:
 
 ```bash
-qb-peer-vpn analyze --host localhost --port 8080 --username admin --map peer_map.html --render-png
+qb-peer-vpn --username admin --password yourpassword --map peer_map.html --render-png
 ```
 
 This will create:
@@ -73,10 +139,11 @@ This will create:
 ### Advanced Options
 
 ```bash
-qb-peer-vpn analyze \
+qb-peer-vpn \
   --host localhost \
   --port 8080 \
   --username admin \
+  --password yourpassword \
   --clusters 7 \
   --map output.html \
   --render-png \
@@ -93,6 +160,13 @@ qb-peer-vpn analyze \
 - `--map`: Generate HTML map to specified file
 - `--render-png`: Also render the HTML map as a PNG image (requires Playwright)
 - `--theme`: Map theme - light or dark (default: light)
+
+### Example Output
+
+<div align="center">
+  <img src="docs/assets/map.png" alt="Interactive map showing peer clusters and recommended ProtonVPN servers" width="800">
+  <p><em>Generated interactive map displaying geolocated peers (color-coded by cluster) and recommended ProtonVPN P2P servers</em></p>
+</div>
 
 ## Requirements
 
