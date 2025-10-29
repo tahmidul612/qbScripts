@@ -208,4 +208,8 @@ pyrightconfig.json
 .ionide
 
 # End of https://www.toptal.com/developers/gitignore/api/linux,visualstudiocode,python
-*.html
+
+# Ignore HTML and PNG files in project root
+/*.html
+/*.png
+

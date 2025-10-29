@@ -1,6 +1,7 @@
 """Map visualization module using Folium."""
 
 from typing import List, Dict, Optional
+from pathlib import Path
 import folium
 
 
@@ -24,6 +25,7 @@ class MapVisualizer:
         recommendations: List[Dict],
         user_location: Optional[Dict] = None,
         output_file: str = "peer_vpn_map.html",
+        render_png: bool = False,
     ) -> None:
         """Create and save interactive map.
 
@@ -32,6 +34,7 @@ class MapVisualizer:
             recommendations: List of server recommendations
             user_location: Optional user location
             output_file: Output HTML filename
+            render_png: Whether to also render the map as PNG
         """
         # Calculate map center
         if clusters:
@@ -128,3 +131,84 @@ class MapVisualizer:
         # Save map
         m.save(output_file)
         print(f"Map saved to {output_file}")
+
+        # Render PNG if requested
+        if render_png:
+            self._render_to_png(output_file)
+
+    def _render_to_png(self, html_file: str) -> None:
+        """Render HTML map to PNG using Playwright.
+
+        Args:
+            html_file: Path to HTML file to render
+        """
+        html_path = Path(html_file).resolve()
+        png_path = html_path.with_suffix(".png")
+
+        try:
+            from playwright.sync_api import sync_playwright
+
+            with sync_playwright() as p:
+                # Use Firefox in headless mode as requested
+                browser = p.firefox.launch(headless=True)
+                page = browser.new_page(viewport={"width": 1920, "height": 1080})
+
+                # Load the HTML file
+                page.goto(f"file://{html_path}")
+
+                # Wait for the map to render
+                page.wait_for_timeout(2000)
+
+                # Execute JavaScript to prepare map for screenshot
+                page.evaluate("""
+                    () => {
+                        // Find all Leaflet map instances
+                        const maps = Object.values(window).filter(obj =>
+                            obj instanceof L.Map
+                        );
+
+                        if (maps.length > 0) {
+                            const map = maps[0];
+
+                            // Hide zoom controls
+                            const zoomControl = document.querySelector('.leaflet-control-zoom');
+                            if (zoomControl) {
+                                zoomControl.style.display = 'none';
+                            }
+
+                            // Collect all marker bounds
+                            const bounds = [];
+                            map.eachLayer((layer) => {
+                                if (layer instanceof L.Marker || layer instanceof L.CircleMarker) {
+                                    bounds.push(layer.getLatLng());
+                                }
+                            });
+
+                            // Fit map to show all markers with padding
+                            if (bounds.length > 0) {
+                                map.fitBounds(bounds, {
+                                    padding: [50, 50],
+                                    maxZoom: 4
+                                });
+                            }
+                        }
+                    }
+                """)
+
+                # Wait for map to reposition
+                page.wait_for_timeout(1000)
+
+                # Take screenshot
+                page.screenshot(path=str(png_path), full_page=False)
+
+                browser.close()
+
+            print(f"PNG rendered to {png_path}")
+
+        except ImportError:
+            print(
+                "Warning: Playwright not installed. Install with: "
+                "pip install playwright && playwright install firefox"
+            )
+        except Exception as e:
+            print(f"Warning: PNG rendering failed: {e}")

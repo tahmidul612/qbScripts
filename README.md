@@ -9,6 +9,7 @@ A Python tool that analyzes qBittorrent peer distributions and recommends optima
 - 🔐 **VPN Recommendations**: Suggest optimal ProtonVPN P2P servers for each cluster
 - 🎨 **Rich Terminal UI**: Beautiful terminal output with tables, colors, and progress indicators
 - 🗺️ **Interactive Maps**: Generate HTML maps visualizing peers and servers
+- 🖼️ **PNG Export**: Render maps as static PNG images for easy sharing
 - ⚡ **Fast & Cached**: IP geolocation with TTL caching to minimize API calls
 - 🚀 **Batch Processing**: Parallel geolocation using batch API endpoints (up to 100 IPs per request)
 - 🛡️ **Fallback Providers**: Multiple geolocation providers (IP-API.com, ipapi.co, freeipapi.com) for reliability
@@ -29,6 +30,17 @@ uv sync
 pip install -e .
 ```
 
+### PNG Export Setup (Optional)
+
+To use the `--render-png` option for generating PNG snapshots of maps, install Playwright and Firefox:
+
+```bash
+pip install playwright
+playwright install firefox
+```
+
+This enables headless browser rendering for converting HTML maps to PNG images.
+
 ## Usage
 
 ### Basic Usage
@@ -45,6 +57,19 @@ You'll be prompted for your qBittorrent password.
 qb-peer-vpn analyze --host localhost --port 8080 --username admin --map peer_map.html
 ```
 
+### With Map and PNG Export
+
+Generate both HTML and PNG versions of the map:
+
+```bash
+qb-peer-vpn analyze --host localhost --port 8080 --username admin --map peer_map.html --render-png
+```
+
+This will create:
+
+- `peer_map.html` - Interactive HTML map
+- `peer_map.png` - Static PNG snapshot (1920x1080)
+
 ### Advanced Options
 
 ```bash
@@ -54,6 +79,7 @@ qb-peer-vpn analyze \
   --username admin \
   --clusters 7 \
   --map output.html \
+  --render-png \
   --theme dark
 ```
 
@@ -65,6 +91,7 @@ qb-peer-vpn analyze \
 - `--password`: qBittorrent password (prompted if not provided)
 - `--clusters`: Number of peer clusters to create (default: 5)
 - `--map`: Generate HTML map to specified file
+- `--render-png`: Also render the HTML map as a PNG image (requires Playwright)
 - `--theme`: Map theme - light or dark (default: light)
 
 ## Requirements
