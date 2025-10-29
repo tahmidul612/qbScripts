@@ -159,8 +159,7 @@ class MapVisualizer:
                 # Wait for the map to render
                 page.wait_for_timeout(2000)
 
-                # Execute JavaScript to fit all markers in bounds
-                # This ensures all clusters and markers are visible in the screenshot
+                # Execute JavaScript to prepare map for screenshot
                 page.evaluate("""
                     () => {
                         // Find all Leaflet map instances
@@ -170,6 +169,12 @@ class MapVisualizer:
 
                         if (maps.length > 0) {
                             const map = maps[0];
+
+                            // Hide zoom controls
+                            const zoomControl = document.querySelector('.leaflet-control-zoom');
+                            if (zoomControl) {
+                                zoomControl.style.display = 'none';
+                            }
 
                             // Collect all marker bounds
                             const bounds = [];
@@ -183,7 +188,7 @@ class MapVisualizer:
                             if (bounds.length > 0) {
                                 map.fitBounds(bounds, {
                                     padding: [50, 50],
-                                    maxZoom: 5
+                                    maxZoom: 4
                                 });
                             }
                         }
