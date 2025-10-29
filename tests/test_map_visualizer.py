@@ -1,6 +1,5 @@
 """Tests for map_visualizer module."""
 
-import subprocess
 import pytest
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
@@ -126,11 +125,10 @@ def test_create_map_with_empty_clusters(visualizer, sample_user_location, tmp_pa
     assert output_file.exists()
 
 
-@patch("qb_peer_vpn.map_visualizer.subprocess.run")
-def test_render_to_png_with_chrome_success(
-    mock_run, visualizer, sample_clusters, sample_recommendations, tmp_path
+def test_render_to_png_with_playwright_success(
+    visualizer, sample_clusters, sample_recommendations, tmp_path
 ):
-    """Test PNG rendering succeeds with Chrome."""
+    """Test PNG rendering succeeds with Playwright."""
     output_file = tmp_path / "test_map.html"
     png_file = tmp_path / "test_map.png"
 
@@ -142,25 +140,31 @@ def test_render_to_png_with_chrome_success(
         render_png=False,
     )
 
-    # Mock successful Chrome execution
-    mock_run.return_value = Mock(returncode=0, stderr="")
+    # Mock Playwright components
+    with patch("qb_peer_vpn.map_visualizer.sync_playwright") as mock_playwright:
+        mock_p = MagicMock()
+        mock_browser = MagicMock()
+        mock_page = MagicMock()
+        
+        mock_playwright.return_value.__enter__.return_value = mock_p
+        mock_p.firefox.launch.return_value = mock_browser
+        mock_browser.new_page.return_value = mock_page
+        
+        # Call render_to_png
+        visualizer._render_to_png(str(output_file))
+        
+        # Verify Playwright was used correctly
+        mock_p.firefox.launch.assert_called_once_with(headless=True)
+        mock_browser.new_page.assert_called_once()
+        mock_page.goto.assert_called_once()
+        mock_page.screenshot.assert_called_once()
+        mock_browser.close.assert_called_once()
 
-    # Call render_to_png
-    visualizer._render_to_png(str(output_file))
 
-    # Verify subprocess.run was called with chrome
-    mock_run.assert_called_once()
-    call_args = mock_run.call_args[0][0]
-    assert "google-chrome" in call_args
-    assert "--headless=new" in call_args
-    assert f"--screenshot={png_file}" in call_args
-
-
-@patch("qb_peer_vpn.map_visualizer.subprocess.run")
-def test_render_to_png_chrome_failure_firefox_fallback(
-    mock_run, visualizer, sample_clusters, sample_recommendations, tmp_path
+def test_render_to_png_handles_import_error(
+    visualizer, sample_clusters, sample_recommendations, tmp_path, capsys
 ):
-    """Test PNG rendering falls back to Firefox when Chrome fails."""
+    """Test PNG rendering handles Playwright not installed."""
     output_file = tmp_path / "test_map.html"
 
     # Create the HTML file first
@@ -171,46 +175,40 @@ def test_render_to_png_chrome_failure_firefox_fallback(
         render_png=False,
     )
 
-    # Mock Chrome failure, Firefox success
-    def run_side_effect(cmd, *args, **kwargs):
-        if "google-chrome" in cmd:
-            raise FileNotFoundError("Chrome not found")
-        else:
-            return Mock(returncode=0, stderr="")
-
-    mock_run.side_effect = run_side_effect
-
-    # Call render_to_png
-    visualizer._render_to_png(str(output_file))
-
-    # Verify both Chrome and Firefox were attempted
-    assert mock_run.call_count == 2
-
-
-@patch("qb_peer_vpn.map_visualizer.subprocess.run")
-def test_render_to_png_handles_timeout(
-    mock_run, visualizer, sample_clusters, sample_recommendations, tmp_path, capsys
-):
-    """Test PNG rendering handles timeout gracefully."""
-    output_file = tmp_path / "test_map.html"
-
-    # Create the HTML file first
-    visualizer.create_map(
-        sample_clusters,
-        sample_recommendations,
-        output_file=str(output_file),
-        render_png=False,
-    )
-
-    # Mock timeout
-    mock_run.side_effect = subprocess.TimeoutExpired("chrome", 30)
-
-    # Call render_to_png - should not raise exception
-    visualizer._render_to_png(str(output_file))
+    # Mock ImportError for Playwright
+    with patch("qb_peer_vpn.map_visualizer.sync_playwright", side_effect=ImportError):
+        # Call render_to_png - should not raise exception
+        visualizer._render_to_png(str(output_file))
 
     # Check warning message was printed
     captured = capsys.readouterr()
-    assert "timeout" in captured.out.lower()
+    assert "playwright not installed" in captured.out.lower()
+
+
+def test_render_to_png_handles_exception(
+    visualizer, sample_clusters, sample_recommendations, tmp_path, capsys
+):
+    """Test PNG rendering handles generic exceptions gracefully."""
+    output_file = tmp_path / "test_map.html"
+
+    # Create the HTML file first
+    visualizer.create_map(
+        sample_clusters,
+        sample_recommendations,
+        output_file=str(output_file),
+        render_png=False,
+    )
+
+    # Mock generic exception
+    with patch("qb_peer_vpn.map_visualizer.sync_playwright") as mock_playwright:
+        mock_playwright.side_effect = Exception("Test error")
+        
+        # Call render_to_png - should not raise exception
+        visualizer._render_to_png(str(output_file))
+
+    # Check warning message was printed
+    captured = capsys.readouterr()
+    assert "failed" in captured.out.lower()
 
 
 def test_create_map_with_render_png_flag(
@@ -238,10 +236,19 @@ def test_png_path_matches_html_path(visualizer, tmp_path):
     # Create a dummy HTML file
     html_file.write_text("<html></html>")
 
-    with patch("qb_peer_vpn.map_visualizer.subprocess.run") as mock_run:
-        mock_run.return_value = Mock(returncode=0, stderr="")
+    with patch("qb_peer_vpn.map_visualizer.sync_playwright") as mock_playwright:
+        mock_p = MagicMock()
+        mock_browser = MagicMock()
+        mock_page = MagicMock()
+        
+        mock_playwright.return_value.__enter__.return_value = mock_p
+        mock_p.firefox.launch.return_value = mock_browser
+        mock_browser.new_page.return_value = mock_page
+        
         visualizer._render_to_png(str(html_file))
 
-        # Verify the PNG path matches HTML base name
-        call_args = mock_run.call_args[0][0]
-        assert str(png_file) in " ".join(call_args)
+        # Verify the PNG path was used in screenshot call
+        mock_page.screenshot.assert_called_once()
+        call_kwargs = mock_page.screenshot.call_args[1]
+        assert call_kwargs["path"] == str(png_file)
+

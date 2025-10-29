@@ -2,7 +2,6 @@
 
 from typing import List, Dict, Optional
 from pathlib import Path
-import subprocess
 import folium
 
 
@@ -138,7 +137,7 @@ class MapVisualizer:
             self._render_to_png(output_file)
 
     def _render_to_png(self, html_file: str) -> None:
-        """Render HTML map to PNG using headless browser.
+        """Render HTML map to PNG using Playwright.
 
         Args:
             html_file: Path to HTML file to render
@@ -147,66 +146,31 @@ class MapVisualizer:
         png_path = html_path.with_suffix(".png")
 
         try:
-            # Use headless Chrome to render HTML to PNG
-            chrome_cmd = [
-                "google-chrome",
-                "--headless=new",
-                "--disable-gpu",
-                "--no-sandbox",
-                "--disable-dev-shm-usage",
-                "--disable-software-rasterizer",
-                "--window-size=1920,1080",
-                f"--screenshot={png_path}",
-                f"file://{html_path}",
-            ]
+            from playwright.sync_api import sync_playwright
 
-            result = subprocess.run(
-                chrome_cmd,
-                capture_output=True,
-                text=True,
-                timeout=10,
+            with sync_playwright() as p:
+                # Use Firefox in headless mode as requested
+                browser = p.firefox.launch(headless=True)
+                page = browser.new_page(viewport={"width": 1920, "height": 1080})
+                
+                # Load the HTML file
+                page.goto(f"file://{html_path}")
+                
+                # Wait for the map to render
+                page.wait_for_timeout(2000)
+                
+                # Take screenshot
+                page.screenshot(path=str(png_path), full_page=False)
+                
+                browser.close()
+                
+            print(f"PNG rendered to {png_path}")
+
+        except ImportError:
+            print(
+                "Warning: Playwright not installed. Install with: "
+                "pip install playwright && playwright install firefox"
             )
-
-            # Check if PNG was created even if Chrome didn't exit cleanly
-            if png_path.exists() and png_path.stat().st_size > 0:
-                print(f"PNG rendered to {png_path}")
-            elif result.returncode == 0:
-                print(f"PNG rendered to {png_path}")
-            else:
-                print(f"Warning: Failed to render PNG: {result.stderr}")
-
-        except FileNotFoundError:
-            # Try Firefox as fallback
-            try:
-                firefox_cmd = [
-                    "firefox",
-                    "--headless",
-                    "--screenshot",
-                    str(png_path),
-                    f"file://{html_path}",
-                ]
-
-                result = subprocess.run(
-                    firefox_cmd,
-                    capture_output=True,
-                    text=True,
-                    timeout=30,
-                )
-
-                if result.returncode == 0:
-                    print(f"PNG rendered to {png_path}")
-                else:
-                    print(f"Warning: Failed to render PNG: {result.stderr}")
-
-            except (FileNotFoundError, subprocess.TimeoutExpired) as e:
-                print(f"Warning: Could not render PNG - no headless browser available: {e}")
-
-        except subprocess.TimeoutExpired:
-            # Chrome may timeout but still create the file
-            if png_path.exists() and png_path.stat().st_size > 0:
-                print(f"PNG rendered to {png_path}")
-            else:
-                print("Warning: PNG rendering timed out")
         except Exception as e:
             print(f"Warning: PNG rendering failed: {e}")
 

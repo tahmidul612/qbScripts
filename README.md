@@ -30,6 +30,17 @@ uv sync
 pip install -e .
 ```
 
+### PNG Export Setup (Optional)
+
+To use the `--render-png` option for generating PNG snapshots of maps, install Playwright and Firefox:
+
+```bash
+pip install playwright
+playwright install firefox
+```
+
+This enables headless browser rendering for converting HTML maps to PNG images.
+
 ## Usage
 
 ### Basic Usage
@@ -80,10 +91,8 @@ qb-peer-vpn analyze \
 - `--password`: qBittorrent password (prompted if not provided)
 - `--clusters`: Number of peer clusters to create (default: 5)
 - `--map`: Generate HTML map to specified file
-- `--render-png`: Also render the HTML map as a PNG image
+- `--render-png`: Also render the HTML map as a PNG image (requires Playwright)
 - `--theme`: Map theme - light or dark (default: light)
-
-**Note:** The `--render-png` option requires a headless browser (Chrome or Firefox) to be installed.
 
 ## Requirements
 
