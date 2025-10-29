@@ -3,8 +3,10 @@
 from typing import List, Dict, Optional
 import requests
 import json
-from cachetools import TTLCache
 from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError
+import pickle
+from pathlib import Path
+import time
 
 
 # Static coordinates for common ProtonVPN cities (lat, lon) - used as fallback
@@ -103,8 +105,72 @@ class ProtonVPNData:
             "https://raw.githubusercontent.com/huzky-v/proton-vpn-server-list/refs/heads/main/output-group/all.json"
         )
         self.servers = []
-        # Long TTL cache for city geocoding (24 hours default)
-        self.geocode_cache = TTLCache(maxsize=500, ttl=geocode_cache_ttl)
+        self.geocode_cache_ttl = geocode_cache_ttl
+
+        # Cache directory in user's home
+        self.cache_dir = Path.home() / ".cache" / "qb-peer-vpn"
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        self.cache_file = self.cache_dir / "city_geocode_cache.pkl"
+
+        # Load or create cache
+        self.geocode_cache = self._load_cache()
+
+    def _load_cache(self) -> Dict[str, tuple]:
+        """Load geocoding cache from disk.
+
+        Returns:
+            Dictionary mapping cache_key to (coords, timestamp)
+        """
+        if self.cache_file.exists():
+            try:
+                with open(self.cache_file, "rb") as f:
+                    cache_data = pickle.load(f)
+                    # Filter out expired entries
+                    current_time = time.time()
+                    valid_cache = {
+                        key: (coords, ts)
+                        for key, (coords, ts) in cache_data.items()
+                        if current_time - ts < self.geocode_cache_ttl
+                    }
+                    return valid_cache
+            except Exception:
+                pass
+        return {}
+
+    def _save_cache(self) -> None:
+        """Save geocoding cache to disk."""
+        try:
+            with open(self.cache_file, "wb") as f:
+                pickle.dump(self.geocode_cache, f)
+        except Exception:
+            pass  # Silently fail if cache can't be saved
+
+    def _get_cached_coords(self, cache_key: str) -> Optional[tuple]:
+        """Get coordinates from cache if not expired.
+
+        Args:
+            cache_key: Cache key (e.g., "City,Country")
+
+        Returns:
+            Tuple of (lat, lon) or None if not in cache or expired
+        """
+        if cache_key in self.geocode_cache:
+            coords, timestamp = self.geocode_cache[cache_key]
+            if time.time() - timestamp < self.geocode_cache_ttl:
+                return coords
+            else:
+                # Remove expired entry
+                del self.geocode_cache[cache_key]
+        return None
+
+    def _set_cached_coords(self, cache_key: str, coords: Optional[tuple]) -> None:
+        """Set coordinates in cache with current timestamp.
+
+        Args:
+            cache_key: Cache key (e.g., "City,Country")
+            coords: Tuple of (lat, lon) or None
+        """
+        self.geocode_cache[cache_key] = (coords, time.time())
 
     def fetch_servers(self) -> None:
         """Fetch and parse ProtonVPN server data."""
@@ -190,8 +256,9 @@ class ProtonVPNData:
         cache_key = f"{city},{country_code}"
 
         # Check cache first
-        if cache_key in self.geocode_cache:
-            return self.geocode_cache[cache_key]
+        cached_coords = self._get_cached_coords(cache_key)
+        if cached_coords is not None:
+            return cached_coords
 
         # Check hardcoded fallback database first for common cities
         fallback_coords = CITY_COORDINATES_FALLBACK.get((city, country_code))
@@ -206,18 +273,18 @@ class ProtonVPNData:
             try:
                 coords = provider(city, country_code)
                 if coords:
-                    self.geocode_cache[cache_key] = coords
+                    self._set_cached_coords(cache_key, coords)
                     return coords
             except Exception:
                 continue
 
         # Use hardcoded fallback if API calls failed
         if fallback_coords:
-            self.geocode_cache[cache_key] = fallback_coords
+            self._set_cached_coords(cache_key, fallback_coords)
             return fallback_coords
 
         # Cache None to avoid repeated failed lookups
-        self.geocode_cache[cache_key] = None
+        self._set_cached_coords(cache_key, None)
         return None
 
     def _geocode_cities_parallel(
@@ -235,15 +302,14 @@ class ProtonVPNData:
         results = {}
 
         # Filter out cached cities
-        uncached_cities = [
-            c for c in cities if f"{c[0]},{c[1]}" not in self.geocode_cache
-        ]
-
-        # Get cached results
+        uncached_cities = []
         for city, country in cities:
             cache_key = f"{city},{country}"
-            if cache_key in self.geocode_cache:
-                results[(city, country)] = self.geocode_cache[cache_key]
+            cached_coords = self._get_cached_coords(cache_key)
+            if cached_coords is not None:
+                results[(city, country)] = cached_coords
+            else:
+                uncached_cities.append((city, country))
 
         if not uncached_cities:
             return results
@@ -267,7 +333,7 @@ class ProtonVPNData:
                         fallback = CITY_COORDINATES_FALLBACK.get((city, country))
                         results[(city, country)] = fallback
                         if fallback:
-                            self.geocode_cache[f"{city},{country}"] = fallback
+                            self._set_cached_coords(f"{city},{country}", fallback)
             except TimeoutError:
                 # Timeout reached - use fallback for remaining cities
                 for future, (city, country) in future_to_city.items():
@@ -275,7 +341,10 @@ class ProtonVPNData:
                         fallback = CITY_COORDINATES_FALLBACK.get((city, country))
                         results[(city, country)] = fallback
                         if fallback:
-                            self.geocode_cache[f"{city},{country}"] = fallback
+                            self._set_cached_coords(f"{city},{country}", fallback)
+
+        # Save cache to disk after geocoding
+        self._save_cache()
 
         return results
 
