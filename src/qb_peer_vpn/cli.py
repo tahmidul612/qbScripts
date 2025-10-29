@@ -46,27 +46,37 @@ def analyze(
         ui.display_info(f"Found {len(peer_ips)} unique peer IPs")
 
         # Geolocate peers
-        ui.display_info("Geolocating peer IPs (this may take a while)...")
+        ui.display_info(
+            f"Geolocating {len(peer_ips)} peer IPs using batch requests with fallback..."
+        )
         geolocator = IPGeolocator()
         peer_locations = {}
         total_peers = 0
 
+        # Use batch geolocation with progress
+        ip_list = list(peer_ips.keys())
+        geo_results = geolocator.geolocate_batch(
+            ip_list, progress_callback=ui.update_geolocation_progress
+        )
+
         for ip, count in peer_ips.items():
-            location = geolocator.geolocate(ip)
+            location = geo_results.get(ip)
             if location:
                 location["count"] = count
                 peer_locations[ip] = location
                 total_peers += count
 
-        ui.display_info(f"Successfully geolocated {len(peer_locations)} IPs")
+        ui.display_success(
+            f"Successfully geolocated {len(peer_locations)}/{len(peer_ips)} IPs"
+        )
 
         # Get user location
         user_location = geolocator.get_current_location()
 
         # Fetch VPN servers
-        ui.display_info("Fetching ProtonVPN server data...")
-        vpn_data = ProtonVPNData()
-        vpn_servers = vpn_data.get_p2p_servers()
+        with ui.spinner("Fetching ProtonVPN server data..."):
+            vpn_data = ProtonVPNData()
+            vpn_servers = vpn_data.get_p2p_servers(geocode=True)
         ui.display_info(f"Found {len(vpn_servers)} P2P-enabled VPN servers")
 
         # Cluster analysis

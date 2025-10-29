@@ -4,6 +4,14 @@ from typing import List, Dict, Optional
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
+from rich.progress import (
+    Progress,
+    SpinnerColumn,
+    TextColumn,
+    BarColumn,
+    TaskProgressColumn,
+)
+from contextlib import contextmanager
 
 
 class TerminalUI:
@@ -12,6 +20,37 @@ class TerminalUI:
     def __init__(self):
         """Initialize console."""
         self.console = Console()
+        self._progress = None
+        self._geo_task = None
+        self._spinner_status = None
+
+    def update_geolocation_progress(self, current: int, total: int, ip: str) -> None:
+        """Update geolocation progress.
+
+        Args:
+            current: Current number of IPs processed
+            total: Total number of IPs to process
+            ip: Current IP being processed
+        """
+        if self._progress is None:
+            self._progress = Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                BarColumn(),
+                TaskProgressColumn(),
+                console=self.console,
+            )
+            self._progress.start()
+            self._geo_task = self._progress.add_task(
+                "[cyan]Geolocating IPs...", total=total
+            )
+
+        self._progress.update(self._geo_task, completed=current)
+
+        if current >= total:
+            self._progress.stop()
+            self._progress = None
+            self._geo_task = None
 
     def display_recommendations(
         self,
@@ -55,10 +94,18 @@ class TerminalUI:
                 f"[dim]({best_rec['cluster']['peer_count']} peers in nearby cluster)[/dim]\n"
             )
 
+        self.console.print(
+            "\n[dim]The table below shows recommended VPN servers for each peer cluster."
+        )
+        self.console.print(
+            "[dim]Connect to servers closer to your peer clusters for better performance.[/dim]\n"
+        )
+
         table = Table(
             title="VPN Server Recommendations by Peer Cluster",
             show_header=True,
             header_style="bold magenta",
+            border_style="blue",
         )
         table.add_column("Priority", style="cyan", width=8, justify="center")
         table.add_column("Peer Cluster Location", style="yellow", no_wrap=True)
@@ -96,6 +143,10 @@ class TerminalUI:
             )
 
         self.console.print(table)
+        self.console.print(
+            f"\n[bold green]✓[/bold green] Analysis complete! "
+            f"Found {len(recommendations)} optimal server(s) for your peer distribution.\n"
+        )
 
         # Add helpful footer
         self.console.print(
@@ -123,7 +174,7 @@ class TerminalUI:
         Args:
             message: Error message to display
         """
-        self.console.print(f"[bold red]Error:[/bold red] {message}")
+        self.console.print(f"[bold red]✗ Error:[/bold red] {message}")
 
     def display_warning(self, message: str) -> None:
         """Display warning message.
@@ -131,7 +182,7 @@ class TerminalUI:
         Args:
             message: Warning message to display
         """
-        self.console.print(f"[yellow]Warning:[/yellow] {message}")
+        self.console.print(f"[yellow]⚠ Warning:[/yellow] {message}")
 
     def display_info(self, message: str) -> None:
         """Display info message.
@@ -139,4 +190,31 @@ class TerminalUI:
         Args:
             message: Info message to display
         """
-        self.console.print(f"[blue]Info:[/blue] {message}")
+        self.console.print(f"[blue]ℹ Info:[/blue] {message}")
+
+    def display_success(self, message: str) -> None:
+        """Display success message.
+
+        Args:
+            message: Success message to display
+        """
+        self.console.print(f"[bold green]✓[/bold green] {message}")
+
+    @contextmanager
+    def spinner(self, message: str):
+        """Context manager for displaying a spinner during long operations.
+
+        Args:
+            message: Message to display with the spinner
+
+        Example:
+            with ui.spinner("Loading data..."):
+                # do work
+                pass
+        """
+        status = self.console.status(f"[cyan]{message}[/cyan]", spinner="dots")
+        status.start()
+        try:
+            yield
+        finally:
+            status.stop()

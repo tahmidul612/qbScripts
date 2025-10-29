@@ -7,9 +7,11 @@ A Python tool that analyzes qBittorrent peer distributions and recommends optima
 - 🌍 **Peer Analysis**: Fetch and geolocate all peers from active qBittorrent torrents
 - 📊 **Geographic Clustering**: Group peers by location using K-means clustering
 - 🔐 **VPN Recommendations**: Suggest optimal ProtonVPN P2P servers for each cluster
-- 🎨 **Rich Terminal UI**: Beautiful terminal output with tables and colors
+- 🎨 **Rich Terminal UI**: Beautiful terminal output with tables, colors, and progress indicators
 - 🗺️ **Interactive Maps**: Generate HTML maps visualizing peers and servers
 - ⚡ **Fast & Cached**: IP geolocation with TTL caching to minimize API calls
+- 🚀 **Batch Processing**: Parallel geolocation using batch API endpoints (up to 100 IPs per request)
+- 🛡️ **Fallback Providers**: Multiple geolocation providers (IP-API.com, ipapi.co, freeipapi.com) for reliability
 
 ## Installation
 
@@ -101,7 +103,7 @@ uv run ruff format .
 
 ## Project Structure
 
-```
+```text
 qbScripts/
 ├── src/qb_peer_vpn/
 │   ├── __init__.py
@@ -125,10 +127,19 @@ qbScripts/
 ## How It Works
 
 1. **Connect to qBittorrent**: Fetches peer data from all active torrents
-1. **Geolocate Peers**: Uses IP-API.com to get coordinates for each peer IP
+1. **Batch Geolocate Peers**: Uses IP-API.com batch endpoint (up to 100 IPs per request) with automatic fallback to alternative providers (ipapi.co, freeipapi.com) for failed lookups
 1. **Cluster Analysis**: Groups peers geographically using K-means clustering
 1. **Server Matching**: Recommends ProtonVPN P2P servers closest to each cluster
-1. **Display Results**: Shows recommendations in terminal and optionally generates an interactive map
+1. **Display Results**: Shows recommendations in a rich terminal UI with progress indicators and optionally generates an interactive map
+
+### Geolocation Features
+
+- **Batch Processing**: Processes up to 100 IP addresses per request using IP-API.com's batch endpoint
+- **Rate Limiting**: Respects API rate limits (15 requests/minute for batch endpoint)
+- **Caching**: TTL-based caching minimizes redundant API calls
+- **Fallback Providers**: Automatically falls back to ipapi.co and freeipapi.com if primary provider fails
+- **Parallel Requests**: Uses thread pool for concurrent fallback requests
+- **Progress Tracking**: Real-time progress indicators during geolocation process
 
 ## Contributing
 
@@ -165,7 +176,9 @@ MIT License - see LICENSE file for details
 
 ## Acknowledgments
 
-- [IP-API.com](https://ip-api.com/) for free IP geolocation
+- [IP-API.com](https://ip-api.com/) for free IP geolocation with batch endpoint support
+- [ipapi.co](https://ipapi.co/) for fallback geolocation service
+- [FreeIPAPI](https://freeipapi.com/) for additional fallback geolocation
 - [ProtonVPN](https://protonvpn.com/) for VPN services
 - [Huzky-v's ProtonVPN Server List](https://github.com/huzky-v/proton-vpn-server-list) for server data
 - [qBittorrent](https://www.qbittorrent.org/) for the excellent torrent client
