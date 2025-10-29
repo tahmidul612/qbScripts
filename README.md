@@ -55,6 +55,7 @@ qb-peer-vpn analyze --host localhost --port 8080 --username admin --map peer_map
 ```
 
 This will create:
+
 - `peer_map.html` - Interactive HTML map
 - `peer_map.png` - Static PNG snapshot (1920x1080)
 
