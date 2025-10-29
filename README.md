@@ -99,6 +99,13 @@ qb-peer-vpn analyze \
 - `--render-png`: Also render the HTML map as a PNG image (requires Playwright)
 - `--theme`: Map theme - light or dark (default: light)
 
+### Example Output
+
+<div align="center">
+  <img src="docs/assets/map.png" alt="Interactive map showing peer clusters and recommended ProtonVPN servers" width="800">
+  <p><em>Generated interactive map displaying geolocated peers (color-coded by cluster) and recommended ProtonVPN P2P servers</em></p>
+</div>
+
 ## Requirements
 
 - Python 3.11+
