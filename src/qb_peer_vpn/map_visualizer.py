@@ -152,6 +152,9 @@ class MapVisualizer:
                 "google-chrome",
                 "--headless=new",
                 "--disable-gpu",
+                "--no-sandbox",
+                "--disable-dev-shm-usage",
+                "--disable-software-rasterizer",
                 "--window-size=1920,1080",
                 f"--screenshot={png_path}",
                 f"file://{html_path}",
@@ -161,10 +164,13 @@ class MapVisualizer:
                 chrome_cmd,
                 capture_output=True,
                 text=True,
-                timeout=30,
+                timeout=10,
             )
 
-            if result.returncode == 0:
+            # Check if PNG was created even if Chrome didn't exit cleanly
+            if png_path.exists() and png_path.stat().st_size > 0:
+                print(f"PNG rendered to {png_path}")
+            elif result.returncode == 0:
                 print(f"PNG rendered to {png_path}")
             else:
                 print(f"Warning: Failed to render PNG: {result.stderr}")
@@ -196,7 +202,11 @@ class MapVisualizer:
                 print(f"Warning: Could not render PNG - no headless browser available: {e}")
 
         except subprocess.TimeoutExpired:
-            print("Warning: PNG rendering timed out")
+            # Chrome may timeout but still create the file
+            if png_path.exists() and png_path.stat().st_size > 0:
+                print(f"PNG rendered to {png_path}")
+            else:
+                print("Warning: PNG rendering timed out")
         except Exception as e:
             print(f"Warning: PNG rendering failed: {e}")
 
