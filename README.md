@@ -103,7 +103,7 @@ uv run ruff format .
 
 ## Project Structure
 
-```
+```text
 qbScripts/
 ├── src/qb_peer_vpn/
 │   ├── __init__.py
@@ -127,10 +127,10 @@ qbScripts/
 ## How It Works
 
 1. **Connect to qBittorrent**: Fetches peer data from all active torrents
-2. **Batch Geolocate Peers**: Uses IP-API.com batch endpoint (up to 100 IPs per request) with automatic fallback to alternative providers (ipapi.co, freeipapi.com) for failed lookups
-3. **Cluster Analysis**: Groups peers geographically using K-means clustering
-4. **Server Matching**: Recommends ProtonVPN P2P servers closest to each cluster
-5. **Display Results**: Shows recommendations in a rich terminal UI with progress indicators and optionally generates an interactive map
+1. **Batch Geolocate Peers**: Uses IP-API.com batch endpoint (up to 100 IPs per request) with automatic fallback to alternative providers (ipapi.co, freeipapi.com) for failed lookups
+1. **Cluster Analysis**: Groups peers geographically using K-means clustering
+1. **Server Matching**: Recommends ProtonVPN P2P servers closest to each cluster
+1. **Display Results**: Shows recommendations in a rich terminal UI with progress indicators and optionally generates an interactive map
 
 ### Geolocation Features
 
