@@ -280,4 +280,3 @@ def test_geolocate_batch_splits_large_lists(geolocator):
     # Should make 2 batch requests (100 + 50)
     assert mock_post.call_count == 2
     assert len(results) == 150
-
