@@ -1,5 +1,18 @@
 # qBittorrent Peer-IP Clustering & ProtonVPN Server Recommender
 
+<div align="center">
+
+[![Version](https://img.shields.io/github/v/tag/tahmidul612/qbScripts?style=for-the-badge&label=version&color=blue)](https://github.com/tahmidul612/qbScripts/releases)
+[![Python Version](https://img.shields.io/badge/python-3.11+-blue.svg?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org)
+[![License](https://img.shields.io/badge/license-MIT-green.svg?style=for-the-badge)](LICENSE)
+[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-black.svg?style=for-the-badge)](https://github.com/astral-sh/ruff)
+
+[![qBittorrent](https://img.shields.io/badge/qBittorrent-compatible-blue.svg?style=for-the-badge&logo=qbittorrent&logoColor=white)](https://www.qbittorrent.org/)
+[![ProtonVPN](https://img.shields.io/badge/ProtonVPN-P2P-purple.svg?style=for-the-badge&logo=protonvpn&logoColor=white)](https://protonvpn.com/)
+[![Tests](https://img.shields.io/badge/tests-pytest-orange.svg?style=for-the-badge&logo=pytest&logoColor=white)](https://pytest.org)
+
+</div>
+
 A Python tool that analyzes qBittorrent peer distributions and recommends optimal ProtonVPN P2P servers based on geographic clustering.
 
 <div align="center">
