@@ -238,8 +238,10 @@ def test_geolocate_batch_with_progress_callback(geolocator):
     with patch("requests.post", return_value=mock_response):
         geolocator.geolocate_batch(ips, progress_callback=progress_callback)
 
-    # Progress callback should be called for each IP
-    assert len(progress_calls) >= 2
+    # Progress callback should be called at least once
+    assert len(progress_calls) >= 1
+    # Should report correct total
+    assert progress_calls[-1][1] == 2
 
 
 def test_geolocate_batch_splits_large_lists(geolocator):

@@ -259,8 +259,10 @@ class IPGeolocator:
         for ip in ips:
             if ip in self.cache:
                 results[ip] = self.cache[ip]
-                if progress_callback:
-                    progress_callback(len(results), len(ips), ip)
+
+        # Update progress for cached IPs (once)
+        if progress_callback and results:
+            progress_callback(len(results), len(ips), "")
 
         if not uncached_ips:
             return results
@@ -296,9 +298,8 @@ class IPGeolocator:
 
             results.update(batch_results)
 
-            # Update progress
+            # Update progress once per batch
             if progress_callback:
-                for ip in batch:
-                    progress_callback(len(results), len(ips), ip)
+                progress_callback(len(results), len(ips), "")
 
         return results
