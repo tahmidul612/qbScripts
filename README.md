@@ -2,6 +2,11 @@
 
 A Python tool that analyzes qBittorrent peer distributions and recommends optimal ProtonVPN P2P servers based on geographic clustering.
 
+<div align="center">
+  <img src="docs/assets/demo.gif" alt="qb-peer-vpn demo" width="800">
+  <p><em>Real-time peer geolocation, clustering analysis, and ProtonVPN server recommendations with rich terminal UI</em></p>
+</div>
+
 ## Features
 
 - 🌍 **Peer Analysis**: Fetch and geolocate all peers from active qBittorrent torrents
