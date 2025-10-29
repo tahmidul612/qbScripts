@@ -43,9 +43,7 @@ class TerminalUI:
                 "[cyan]Geolocating IPs...", total=total
             )
 
-        self._progress.update(
-            self._geo_task, completed=current, description=f"[cyan]Geolocating {ip}..."
-        )
+        self._progress.update(self._geo_task, completed=current)
 
         if current >= total:
             self._progress.stop()
