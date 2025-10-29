@@ -1,5 +1,6 @@
 """Tests for map_visualizer module."""
 
+import subprocess
 import pytest
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
@@ -202,8 +203,6 @@ def test_render_to_png_handles_timeout(
     )
 
     # Mock timeout
-    import subprocess
-
     mock_run.side_effect = subprocess.TimeoutExpired("chrome", 30)
 
     # Call render_to_png - should not raise exception
