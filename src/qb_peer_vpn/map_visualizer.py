@@ -1,6 +1,8 @@
 """Map visualization module using Folium."""
 
 from typing import List, Dict, Optional
+from pathlib import Path
+import subprocess
 import folium
 
 
@@ -24,6 +26,7 @@ class MapVisualizer:
         recommendations: List[Dict],
         user_location: Optional[Dict] = None,
         output_file: str = "peer_vpn_map.html",
+        render_png: bool = False,
     ) -> None:
         """Create and save interactive map.
 
@@ -32,6 +35,7 @@ class MapVisualizer:
             recommendations: List of server recommendations
             user_location: Optional user location
             output_file: Output HTML filename
+            render_png: Whether to also render the map as PNG
         """
         # Calculate map center
         if clusters:
@@ -128,3 +132,71 @@ class MapVisualizer:
         # Save map
         m.save(output_file)
         print(f"Map saved to {output_file}")
+
+        # Render PNG if requested
+        if render_png:
+            self._render_to_png(output_file)
+
+    def _render_to_png(self, html_file: str) -> None:
+        """Render HTML map to PNG using headless browser.
+
+        Args:
+            html_file: Path to HTML file to render
+        """
+        html_path = Path(html_file).resolve()
+        png_path = html_path.with_suffix(".png")
+
+        try:
+            # Use headless Chrome to render HTML to PNG
+            chrome_cmd = [
+                "google-chrome",
+                "--headless=new",
+                "--disable-gpu",
+                "--window-size=1920,1080",
+                f"--screenshot={png_path}",
+                f"file://{html_path}",
+            ]
+
+            result = subprocess.run(
+                chrome_cmd,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+
+            if result.returncode == 0:
+                print(f"PNG rendered to {png_path}")
+            else:
+                print(f"Warning: Failed to render PNG: {result.stderr}")
+
+        except FileNotFoundError:
+            # Try Firefox as fallback
+            try:
+                firefox_cmd = [
+                    "firefox",
+                    "--headless",
+                    "--screenshot",
+                    str(png_path),
+                    f"file://{html_path}",
+                ]
+
+                result = subprocess.run(
+                    firefox_cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                )
+
+                if result.returncode == 0:
+                    print(f"PNG rendered to {png_path}")
+                else:
+                    print(f"Warning: Failed to render PNG: {result.stderr}")
+
+            except (FileNotFoundError, subprocess.TimeoutExpired) as e:
+                print(f"Warning: Could not render PNG - no headless browser available: {e}")
+
+        except subprocess.TimeoutExpired:
+            print("Warning: PNG rendering timed out")
+        except Exception as e:
+            print(f"Warning: PNG rendering failed: {e}")
+

@@ -25,6 +25,7 @@ def analyze(
     clusters: int = typer.Option(5, help="Number of peer clusters"),
     map_output: Optional[Path] = typer.Option(None, "--map", help="Generate HTML map"),
     theme: str = typer.Option("light", help="Map theme (light/dark)"),
+    render_png: bool = typer.Option(False, "--render-png", help="Render map as PNG"),
 ):
     """Analyze qBittorrent peers and recommend VPN servers."""
     ui = TerminalUI()
@@ -92,6 +93,7 @@ def analyze(
                 recommendations,
                 user_location,
                 str(map_output),
+                render_png=render_png,
             )
 
     except Exception as e:
