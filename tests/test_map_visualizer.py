@@ -1,8 +1,7 @@
 """Tests for map_visualizer module."""
 
 import pytest
-from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import patch, MagicMock
 from qb_peer_vpn.map_visualizer import MapVisualizer
 
 
@@ -130,7 +129,6 @@ def test_render_to_png_with_playwright_success(
 ):
     """Test PNG rendering succeeds with Playwright."""
     output_file = tmp_path / "test_map.html"
-    png_file = tmp_path / "test_map.png"
 
     # Create the HTML file first
     visualizer.create_map(
