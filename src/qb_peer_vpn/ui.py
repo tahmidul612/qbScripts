@@ -11,6 +11,7 @@ from rich.progress import (
     BarColumn,
     TaskProgressColumn,
 )
+from contextlib import contextmanager
 
 
 class TerminalUI:
@@ -21,6 +22,7 @@ class TerminalUI:
         self.console = Console()
         self._progress = None
         self._geo_task = None
+        self._spinner_status = None
 
     def update_geolocation_progress(self, current: int, total: int, ip: str) -> None:
         """Update geolocation progress.
@@ -168,3 +170,22 @@ class TerminalUI:
             message: Success message to display
         """
         self.console.print(f"[bold green]✓[/bold green] {message}")
+
+    @contextmanager
+    def spinner(self, message: str):
+        """Context manager for displaying a spinner during long operations.
+
+        Args:
+            message: Message to display with the spinner
+
+        Example:
+            with ui.spinner("Loading data..."):
+                # do work
+                pass
+        """
+        status = self.console.status(f"[cyan]{message}[/cyan]", spinner="dots")
+        status.start()
+        try:
+            yield
+        finally:
+            status.stop()

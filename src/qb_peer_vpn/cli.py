@@ -74,9 +74,9 @@ def analyze(
         user_location = geolocator.get_current_location()
 
         # Fetch VPN servers
-        ui.display_info("Fetching ProtonVPN server data...")
-        vpn_data = ProtonVPNData()
-        vpn_servers = vpn_data.get_p2p_servers(geocode=True)
+        with ui.spinner("Fetching ProtonVPN server data..."):
+            vpn_data = ProtonVPNData()
+            vpn_servers = vpn_data.get_p2p_servers(geocode=True)
         ui.display_info(f"Found {len(vpn_servers)} P2P-enabled VPN servers")
 
         # Cluster analysis

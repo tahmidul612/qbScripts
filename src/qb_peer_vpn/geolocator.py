@@ -2,9 +2,10 @@
 
 from typing import Optional, Dict
 import requests
-from cachetools import TTLCache
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import pickle
+from pathlib import Path
 
 
 class IPGeolocator:
@@ -14,10 +15,20 @@ class IPGeolocator:
         """Initialize geolocator with cache.
 
         Args:
-            cache_ttl: Time-to-live for cache entries in seconds
+            cache_ttl: Time-to-live for cache entries in seconds (default: 1 hour)
             max_cache_size: Maximum number of cached entries
         """
-        self.cache = TTLCache(maxsize=max_cache_size, ttl=cache_ttl)
+        self.cache_ttl = cache_ttl
+        self.max_cache_size = max_cache_size
+
+        # Cache directory in user's home
+        self.cache_dir = Path.home() / ".cache" / "qb-peer-vpn"
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        self.cache_file = self.cache_dir / "ip_geocode_cache.pkl"
+
+        # Load or create cache
+        self.cache = self._load_cache()
+
         self.primary_url = "http://ip-api.com/json/{}"
         self.batch_url = "http://ip-api.com/batch"
         self.last_request_time = 0
@@ -30,6 +41,76 @@ class IPGeolocator:
             self._geolocate_ipapi_co,
             self._geolocate_freeipapi,
         ]
+
+    def _load_cache(self) -> Dict[str, tuple]:
+        """Load IP geocoding cache from disk.
+
+        Returns:
+            Dictionary mapping IP to (location_data, timestamp)
+        """
+        if self.cache_file.exists():
+            try:
+                with open(self.cache_file, "rb") as f:
+                    cache_data = pickle.load(f)
+                    # Filter out expired entries
+                    current_time = time.time()
+                    valid_cache = {
+                        ip: (data, ts)
+                        for ip, (data, ts) in cache_data.items()
+                        if current_time - ts < self.cache_ttl
+                    }
+                    # Limit cache size
+                    if len(valid_cache) > self.max_cache_size:
+                        # Keep most recent entries
+                        sorted_items = sorted(
+                            valid_cache.items(), key=lambda x: x[1][1], reverse=True
+                        )
+                        valid_cache = dict(sorted_items[: self.max_cache_size])
+                    return valid_cache
+            except Exception:
+                pass
+        return {}
+
+    def _save_cache(self) -> None:
+        """Save IP geocoding cache to disk."""
+        try:
+            with open(self.cache_file, "wb") as f:
+                pickle.dump(self.cache, f)
+        except Exception:
+            pass  # Silently fail if cache can't be saved
+
+    def _get_cached_location(self, ip: str) -> Optional[Dict]:
+        """Get location from cache if not expired.
+
+        Args:
+            ip: IP address
+
+        Returns:
+            Location data or None if not in cache or expired
+        """
+        if ip in self.cache:
+            data, timestamp = self.cache[ip]
+            if time.time() - timestamp < self.cache_ttl:
+                return data
+            else:
+                # Remove expired entry
+                del self.cache[ip]
+        return None
+
+    def _set_cached_location(self, ip: str, data: Optional[Dict]) -> None:
+        """Set location in cache with current timestamp.
+
+        Args:
+            ip: IP address
+            data: Location data or None
+        """
+        self.cache[ip] = (data, time.time())
+
+        # Limit cache size
+        if len(self.cache) > self.max_cache_size:
+            # Remove oldest entry
+            oldest_ip = min(self.cache.items(), key=lambda x: x[1][1])[0]
+            del self.cache[oldest_ip]
 
     def _rate_limit(self) -> None:
         """Enforce rate limiting for API requests."""
@@ -111,8 +192,10 @@ class IPGeolocator:
         Returns:
             Dictionary with keys: lat, lon, country, city, or None if failed
         """
-        if ip in self.cache:
-            return self.cache[ip]
+        # Check cache first
+        cached_data = self._get_cached_location(ip)
+        if cached_data is not None:
+            return cached_data
 
         self._rate_limit()
 
@@ -129,7 +212,7 @@ class IPGeolocator:
                     "country": data.get("country"),
                     "city": data.get("city"),
                 }
-                self.cache[ip] = result
+                self._set_cached_location(ip, result)
                 return result
         except Exception:
             pass
@@ -139,7 +222,7 @@ class IPGeolocator:
             try:
                 result = fallback(ip)
                 if result:
-                    self.cache[ip] = result
+                    self._set_cached_location(ip, result)
                     return result
             except Exception:
                 continue
@@ -182,7 +265,7 @@ class IPGeolocator:
                         "city": item.get("city"),
                     }
                     results[ip] = result
-                    self.cache[ip] = result
+                    self._set_cached_location(ip, result)
                 else:
                     results[item.get("query")] = None
 
@@ -253,12 +336,13 @@ class IPGeolocator:
         results = {}
 
         # Filter out cached IPs
-        uncached_ips = [ip for ip in ips if ip not in self.cache]
-
-        # Get cached results
+        uncached_ips = []
         for ip in ips:
-            if ip in self.cache:
-                results[ip] = self.cache[ip]
+            cached_data = self._get_cached_location(ip)
+            if cached_data is not None:
+                results[ip] = cached_data
+            else:
+                uncached_ips.append(ip)
 
         # Update progress for cached IPs (once)
         if progress_callback and results:
@@ -301,5 +385,8 @@ class IPGeolocator:
             # Update progress once per batch
             if progress_callback:
                 progress_callback(len(results), len(ips), "")
+
+        # Save cache to disk after geocoding
+        self._save_cache()
 
         return results
