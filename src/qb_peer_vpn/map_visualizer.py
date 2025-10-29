@@ -159,6 +159,40 @@ class MapVisualizer:
                 # Wait for the map to render
                 page.wait_for_timeout(2000)
                 
+                # Execute JavaScript to fit all markers in bounds
+                # This ensures all clusters and markers are visible in the screenshot
+                page.evaluate("""
+                    () => {
+                        // Find all Leaflet map instances
+                        const maps = Object.values(window).filter(obj => 
+                            obj instanceof L.Map
+                        );
+                        
+                        if (maps.length > 0) {
+                            const map = maps[0];
+                            
+                            // Collect all marker bounds
+                            const bounds = [];
+                            map.eachLayer((layer) => {
+                                if (layer instanceof L.Marker || layer instanceof L.CircleMarker) {
+                                    bounds.push(layer.getLatLng());
+                                }
+                            });
+                            
+                            // Fit map to show all markers with padding
+                            if (bounds.length > 0) {
+                                map.fitBounds(bounds, {
+                                    padding: [50, 50],
+                                    maxZoom: 5
+                                });
+                            }
+                        }
+                    }
+                """)
+                
+                # Wait for map to reposition
+                page.wait_for_timeout(1000)
+                
                 # Take screenshot
                 page.screenshot(path=str(png_path), full_page=False)
                 
