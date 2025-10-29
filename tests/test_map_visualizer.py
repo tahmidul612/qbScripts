@@ -143,14 +143,14 @@ def test_render_to_png_with_playwright_success(
         mock_p = MagicMock()
         mock_browser = MagicMock()
         mock_page = MagicMock()
-        
+
         mock_playwright.return_value.__enter__.return_value = mock_p
         mock_p.firefox.launch.return_value = mock_browser
         mock_browser.new_page.return_value = mock_page
-        
+
         # Call render_to_png
         visualizer._render_to_png(str(output_file))
-        
+
         # Verify Playwright was used correctly
         mock_p.firefox.launch.assert_called_once_with(headless=True)
         mock_browser.new_page.assert_called_once()
@@ -201,7 +201,7 @@ def test_render_to_png_handles_exception(
     # Mock generic exception - patch at import source
     with patch("playwright.sync_api.sync_playwright") as mock_playwright:
         mock_playwright.side_effect = Exception("Test error")
-        
+
         # Call render_to_png - should not raise exception
         visualizer._render_to_png(str(output_file))
 
@@ -240,15 +240,14 @@ def test_png_path_matches_html_path(visualizer, tmp_path):
         mock_p = MagicMock()
         mock_browser = MagicMock()
         mock_page = MagicMock()
-        
+
         mock_playwright.return_value.__enter__.return_value = mock_p
         mock_p.firefox.launch.return_value = mock_browser
         mock_browser.new_page.return_value = mock_page
-        
+
         visualizer._render_to_png(str(html_file))
 
         # Verify the PNG path was used in screenshot call
         mock_page.screenshot.assert_called_once()
         call_kwargs = mock_page.screenshot.call_args[1]
         assert call_kwargs["path"] == str(png_file)
-

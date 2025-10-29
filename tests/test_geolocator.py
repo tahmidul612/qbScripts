@@ -3,8 +3,6 @@
 import pytest
 from unittest.mock import patch, Mock
 from qb_peer_vpn.geolocator import IPGeolocator
-import tempfile
-from pathlib import Path
 
 
 @pytest.fixture
@@ -181,13 +179,15 @@ def test_geolocate_batch_success(geolocator):
 def test_geolocate_batch_with_cached_ips(geolocator):
     """Test batch geolocation with some cached IPs."""
     # Add one IP to cache using the new cache method
-    import time
-    geolocator._set_cached_location("8.8.8.8", {
-        "lat": 37.7749,
-        "lon": -122.4194,
-        "country": "United States",
-        "city": "San Francisco",
-    })
+    geolocator._set_cached_location(
+        "8.8.8.8",
+        {
+            "lat": 37.7749,
+            "lon": -122.4194,
+            "country": "United States",
+            "city": "San Francisco",
+        },
+    )
 
     ips = ["8.8.8.8", "1.1.1.1"]
 
