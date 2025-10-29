@@ -138,8 +138,8 @@ def test_render_to_png_with_playwright_success(
         render_png=False,
     )
 
-    # Mock Playwright components
-    with patch("qb_peer_vpn.map_visualizer.sync_playwright") as mock_playwright:
+    # Mock Playwright components - patch at the import source
+    with patch("playwright.sync_api.sync_playwright") as mock_playwright:
         mock_p = MagicMock()
         mock_browser = MagicMock()
         mock_page = MagicMock()
@@ -155,6 +155,7 @@ def test_render_to_png_with_playwright_success(
         mock_p.firefox.launch.assert_called_once_with(headless=True)
         mock_browser.new_page.assert_called_once()
         mock_page.goto.assert_called_once()
+        mock_page.evaluate.assert_called_once()  # Verify fitBounds JS was executed
         mock_page.screenshot.assert_called_once()
         mock_browser.close.assert_called_once()
 
@@ -173,8 +174,8 @@ def test_render_to_png_handles_import_error(
         render_png=False,
     )
 
-    # Mock ImportError for Playwright
-    with patch("qb_peer_vpn.map_visualizer.sync_playwright", side_effect=ImportError):
+    # Mock ImportError for Playwright - patch at import source
+    with patch("playwright.sync_api.sync_playwright", side_effect=ImportError):
         # Call render_to_png - should not raise exception
         visualizer._render_to_png(str(output_file))
 
@@ -197,8 +198,8 @@ def test_render_to_png_handles_exception(
         render_png=False,
     )
 
-    # Mock generic exception
-    with patch("qb_peer_vpn.map_visualizer.sync_playwright") as mock_playwright:
+    # Mock generic exception - patch at import source
+    with patch("playwright.sync_api.sync_playwright") as mock_playwright:
         mock_playwright.side_effect = Exception("Test error")
         
         # Call render_to_png - should not raise exception
@@ -234,7 +235,8 @@ def test_png_path_matches_html_path(visualizer, tmp_path):
     # Create a dummy HTML file
     html_file.write_text("<html></html>")
 
-    with patch("qb_peer_vpn.map_visualizer.sync_playwright") as mock_playwright:
+    # Mock Playwright at import source
+    with patch("playwright.sync_api.sync_playwright") as mock_playwright:
         mock_p = MagicMock()
         mock_browser = MagicMock()
         mock_page = MagicMock()
